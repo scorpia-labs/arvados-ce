@@ -1,0 +1,6 @@
+arvados_build_one_target:
+  hosts:
+    localhost:
+      ansible_connection: local
+  vars:
+    arvados_dev_from_pkgs: true
