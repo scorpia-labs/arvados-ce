@@ -3,7 +3,7 @@ name: Build and Publish Packages
 on:
   push:
     tags:
-      - 'v*'
+      - '*.*.*'
 
 jobs:
   build-and-publish:
@@ -23,17 +23,6 @@ jobs:
           ./tools/ansible/install-ansible.sh
           # Add pipx binaries to PATH so ansible-playbook can be found
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Create Ansible Inventory
-        run: |
-          cat << 'INVENTORY' > .github/workflows/inventory.yml
-          arvados_build_one_target:
-            hosts:
-              localhost:
-                ansible_connection: local
-            vars:
-              arvados_dev_from_pkgs: true
-          INVENTORY
 
       - name: Run Ansible Playbook (install-dev-tools.yml)
         run: |
@@ -65,7 +54,7 @@ jobs:
 
           # Copy newly built .deb files into the target Pages directory
           # This retains existing older packages
-          find "$PKG_DIR" -name "*.deb" -exec cp {} "$TARGET_DIR/" \;
+          find "$GITHUB_WORKSPACE/packages" -name "*.deb" -exec cp {} "$TARGET_DIR/" \;
 
           # Move to the target directory to generate metadata for ALL packages (old + new)
           cd "$TARGET_DIR"
