@@ -26,7 +26,7 @@ jobs:
 
       - name: Run Ansible Playbook (install-dev-tools.yml)
         run: |
-          ansible-playbook -b -i .github/workflows/inventory.yml tools/ansible/install-dev-tools.yml
+          ansible-playbook -b -i .github/inventory.yml tools/ansible/install-dev-tools.yml
 
       - name: Build Packages
         run: |
