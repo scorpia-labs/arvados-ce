@@ -1,0 +1,118 @@
+name: Build and Publish Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pipx gpg dpkg-dev apt-utils
+
+      - name: Install Ansible
+        run: |
+          # The install script requires pipx
+          ./tools/ansible/install-ansible.sh
+          # Add pipx binaries to PATH so ansible-playbook can be found
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Create Ansible Inventory
+        run: |
+          cat << 'INVENTORY' > .github/workflows/inventory.yml
+          arvados_build_one_target:
+            hosts:
+              localhost:
+                ansible_connection: local
+            vars:
+              arvados_dev_from_pkgs: true
+          INVENTORY
+
+      - name: Run Ansible Playbook (install-dev-tools.yml)
+        run: |
+          ansible-playbook -b -i .github/workflows/inventory.yml tools/ansible/install-dev-tools.yml
+
+      - name: Build Packages
+        run: |
+          cd build
+          export WORKSPACE=$GITHUB_WORKSPACE
+          ./run-build-packages-one-target.sh --target ubuntu2404 --force-build
+
+      - name: Checkout Pages Repo
+        uses: actions/checkout@v4
+        with:
+          repository: scorpia-labs/scorpia-labs.github.io
+          path: scorpia-labs-pages
+          token: ${{ secrets.DEPLOY_TOKEN }}
+
+      - name: Prepare and Publish to APT Repo
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          PKG_DIR="$GITHUB_WORKSPACE/packages/ubuntu2404"
+          TARGET_DIR="$GITHUB_WORKSPACE/scorpia-labs-pages/apt/noble"
+
+          # Create target directory if it doesn't exist
+          mkdir -p "$TARGET_DIR"
+
+          # Copy newly built .deb files into the target Pages directory
+          # This retains existing older packages
+          find "$PKG_DIR" -name "*.deb" -exec cp {} "$TARGET_DIR/" \;
+
+          # Move to the target directory to generate metadata for ALL packages (old + new)
+          cd "$TARGET_DIR"
+
+          # Generate unified Packages file that indexes both old and new packages
+          dpkg-scanpackages --multiversion . > Packages
+          gzip -k -f Packages
+
+          # Generate Release file
+          apt-ftparchive -o APT::FTPArchive::Release::Origin="Scorpia Labs" \
+                         -o APT::FTPArchive::Release::Label="Scorpia Labs" \
+                         -o APT::FTPArchive::Release::Suite="noble" \
+                         -o APT::FTPArchive::Release::Codename="noble" \
+                         -o APT::FTPArchive::Release::Architectures="amd64" \
+                         -o APT::FTPArchive::Release::Components="main" \
+                         release . > Release
+
+          # Import GPG key
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+
+          # Sign the Release file
+          # If a passphrase is used, it can be passed via --pinentry-mode loopback --passphrase
+          # We need to remove any old signature files to cleanly generate new ones
+          rm -f Release.gpg InRelease
+
+          if [ -n "$GPG_PASSPHRASE" ]; then
+            gpg --batch --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --armor --detach-sign --sign -o Release.gpg Release
+            gpg --batch --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --clearsign -o InRelease Release
+          else
+            gpg --batch --armor --detach-sign --sign -o Release.gpg Release
+            gpg --batch --clearsign -o InRelease Release
+          fi
+
+          # Export public key for users to download
+          KEY_ID=$(gpg --list-keys --with-colons | awk -F: '/^pub/ {print $5}' | head -n 1)
+          gpg --armor --export "$KEY_ID" > scorpia-labs.gpg.key
+
+          # Commit and push
+          cd "$GITHUB_WORKSPACE/scorpia-labs-pages"
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+
+          git add apt/noble
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update APT repository for noble (ubuntu 24.04)"
+            git push
+          fi
