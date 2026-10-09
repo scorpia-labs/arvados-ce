@@ -1,0 +1,82 @@
+name: Build and Deploy Debian Package APT Repo
+
+on:
+  push:
+    branches:
+      - main
+      - github-actions-*
+      - build-packages-*
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Prepare Build Environment
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          set -euo pipefail
+          sudo apt update && sudo apt install -y --no-install-recommends pipx apt-utils dpkg-dev gnupg gzip
+          pipx ensurepath
+          pipx uninstall ansible-core
+          "$GITHUB_WORKSPACE/tools/ansible/install-ansible.sh"
+
+      - name: Get GitHub Page URL
+        id: get-pages-url
+        uses: tuftsrt/get-pages-url@v1
+
+      - name: Build and Test Debian Packages
+        env:
+          WORKSPACE: ${{ github.workspace }}
+          ARVADOS_APT_URL_BASE: ${{ steps.get-pages-url.outputs.url }}
+        run: |
+          set -euo pipefail
+          cd "$WORKSPACE/build" && ./run-build-test-packages-one-target.sh --target ubuntu2404
+
+      - name: Generate APT Repository
+        run: |
+          set -ex
+          .github/scripts/make-apt-repo.sh ./packages/ubuntu2404 ./apt-repo
+
+      - name: Sign APT Repository Release File
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: .github/scripts/sign-apt-repo.sh ./apt-repo
+
+      - name: Generate Directory Indices for Pages
+        uses: yKicchan/generate-directory-listing-action@v1
+        with:
+          target: ./apt-repo
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: ./apt-repo
+
+  deploy:
+    needs:
+      - build
+    runs-on: ubuntu-slim
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+      actions: read
+    concurrency:
+      group: "pages"
+      cancel-in-progress: true
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

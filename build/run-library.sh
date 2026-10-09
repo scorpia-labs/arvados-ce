@@ -466,7 +466,7 @@ test_package_presence() {
       else
         repo_subdir=${pkgname:0:1}
       fi
-      pkg_url="http://apt.arvados.org/$codename/pool/main/$repo_subdir/$pkgname/$full_pkgname"
+      pkg_url="${ARVADOS_APT_URL_BASE:-https://apt.arvados.org}/$codename/pool/main/$repo_subdir/$pkgname/$full_pkgname"
     else
       local rpm_root
       case "$TARGET" in
@@ -476,7 +476,7 @@ test_package_presence() {
           return 0
           ;;
       esac
-      pkg_url="https://rpm.arvados.org/$rpm_root/$arch/$full_pkgname"
+      pkg_url="${ARVADOS_RPM_URL_BASE:-https://rpm.arvados.org}/$rpm_root/$arch/$full_pkgname"
     fi
 
     if curl -fs -o "$WORKSPACE/packages/$TARGET/$full_pkgname" "$pkg_url"; then

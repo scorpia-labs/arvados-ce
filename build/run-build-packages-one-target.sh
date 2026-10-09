@@ -304,6 +304,8 @@ if [[ -n "$test_packages" ]]; then
             --rm \
             "${docker_volume_args[@]}" \
             --env ARVADOS_DEBUG=$ARVADOS_DEBUG \
+            --env "ARVADOS_APT_URL_BASE=${ARVADOS_APT_URL_BASE}" \
+            --env "ARVADOS_RPM_URL_BASE=${ARVADOS_RPM_URL_BASE}" \
             --env "TARGET=$TARGET" \
             --env "WORKSPACE=/arvados" \
             "$IMAGE" $COMMAND $p
@@ -343,6 +345,8 @@ else
         --env ARVADOS_BUILDING_VERSION="$ARVADOS_BUILDING_VERSION" \
         --env ARVADOS_BUILDING_ITERATION="$ARVADOS_BUILDING_ITERATION" \
         --env ARVADOS_DEBUG=$ARVADOS_DEBUG \
+        --env "ARVADOS_APT_URL_BASE=${ARVADOS_APT_URL_BASE}" \
+        --env "ARVADOS_RPM_URL_BASE=${ARVADOS_RPM_URL_BASE}" \
         --env "ONLY_BUILD=$ONLY_BUILD" \
         --env "FORCE_BUILD=$FORCE_BUILD" \
         --env "ARCH=$ARCH" \
