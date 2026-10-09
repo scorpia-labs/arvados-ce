@@ -28,7 +28,7 @@ jobs:
         run: |
           set -euo pipefail
           export WORKSPACE="$GITHUB_WORKSPACE"
-          "$WORKSPACE/build/run-build-packages-one-target.sh" --target ubuntu2404 --force-build
+          cd "$WORKSPACE/build" && ./run-build-packages-one-target.sh --target ubuntu2404 --force-build
 
       - name: Upload .deb Artifacts
         uses: actions/upload-artifact@v7
