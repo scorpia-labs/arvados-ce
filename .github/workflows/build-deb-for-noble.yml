@@ -23,7 +23,7 @@ jobs:
           pipx ensurepath
           pipx uninstall ansible-core
           "$GITHUB_WORKSPACE/tools/ansible/install-ansible.sh"
-          ansible-playbook -i "$GITHUB_WORKSPACE/.github/files/setup-self.yml" ""$GITHUB_WORKSPACE/tools/ansible/install-dev-tools.yml"
+          ansible-playbook -i "$GITHUB_WORKSPACE/.github/files/setup-self.yml" "$GITHUB_WORKSPACE/tools/ansible/install-dev-tools.yml"
 
       - name: Build Debian Packages
         run: |
