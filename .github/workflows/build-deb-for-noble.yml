@@ -1,0 +1,39 @@
+name: Build Debian Packages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-2404
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Prepare Build Environment
+        run: |
+          set -euo pipefail
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt update
+          sudo apt install -y pipx
+          pipx ensurepath
+          cd tools/ansible
+          ./install-ansible.sh
+          ansible-playbook -i "$GITHUB_WORKSPACE/.github/files/setup-self.yml" install-dev-tools.yml
+
+      - name: Build Debian Packages
+        run: |
+          set -euo pipefail
+          export WORKSPACE="$GITHUB_WORKSPACE"
+          "$WORKSPACE/build/run-build-packages-one-target.sh" --target ubuntu2404 --force-build
+
+      - name: Upload .deb Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: deb-packages
+          path: ./packages/ubuntu2404/*.deb
+          retention-days: 4
+          if-no-files-found: error
