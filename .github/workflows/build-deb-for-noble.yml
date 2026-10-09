@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v7
+        with:
+          fetch-tags: true
 
       - name: Prepare Build Environment
         run: |
