@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout Source Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Prepare Build Environment
         run: |
@@ -21,8 +21,8 @@ jobs:
           sudo apt update
           sudo apt install -y pipx
           pipx ensurepath
-          cd tools/ansible
-          ./install-ansible.sh
+          pipx uninstall ansible-core
+          "$GITHUB_WORKSPACE/tools/ansible/install-ansible.sh"
           ansible-playbook -i "$GITHUB_WORKSPACE/.github/files/setup-self.yml" install-dev-tools.yml
 
       - name: Build Debian Packages
