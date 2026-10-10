@@ -40,8 +40,17 @@ gpg --armor --export "$GPG_KEY_ID" > "$REPO_DIR/pubkey.gpg"
 cd "$REPO_DIR/$CODENAME"
 
 # Copy .deb binaries to pool.
-find "$POOL_DIR" -name '*.deb' -print0 | xargs -0 rm -f
-find "$BINARY_SRCDIR" -name '*.deb' -print0 | xargs -0 cp -t "$POOL_DIR"
+find "$BINARY_SRCDIR" -name '*.deb' -type f | while IFS= read -r DEB_PATH; do
+    SRC_BASENAME="$(basename "$DEB_PATH")"
+    case "$SRC_BASENAME" in
+	lib*)
+	    DST_PREFIX="lib" ;;
+	*)
+	    DST_PREFIX="$(echo "$SRC_BASENAME" | cut -c1)" ;;
+    esac
+    mkdir "$POOL_DIR/$DST_PREFIX"
+    cp "$DEB_PATH" "$POOL_DIR/$DST_PREFIX/$SRC_BASENAME"
+done
 
 # Scan pool and generate compressed Package indices containing relative paths.
 apt-ftparchive packages "$POOL_DIR" > "$DIST_DESTDIR/Packages"
