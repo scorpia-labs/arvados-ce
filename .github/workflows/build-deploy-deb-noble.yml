@@ -21,7 +21,7 @@ jobs:
           set -euo pipefail
           export DEBIAN_FRONTEND=noninteractive
           sudo apt update
-          sudo apt install -y pipx
+          sudo apt install -y --no-install-recommends pipx apt-utils gnupg gzip
           pipx ensurepath
           pipx uninstall ansible-core
           "$GITHUB_WORKSPACE/tools/ansible/install-ansible.sh"
@@ -32,13 +32,22 @@ jobs:
           export WORKSPACE="$GITHUB_WORKSPACE"
           cd "$WORKSPACE/build" && ./run-build-packages-one-target.sh --target ubuntu2404 --force-build
 
-      - name: Upload .deb Artifacts
-        uses: actions/upload-artifact@v7
+      - name: Generate Signed APT Repository
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: .github/scripts/make-apt-repo.sh ./packages/ubuntu2404 ./apt-repo
+
+      - name: Generate Directory Indices for Pages
+        uses: yKicchan/generate-directory-listing-action@v1
         with:
-          name: deb-packages
-          path: ./packages/ubuntu2404/*.deb
-          retention-days: 4
-          if-no-files-found: error
+          target: ./apt-repo
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: ./apt-repo
 
   deploy:
     needs:
@@ -56,37 +65,6 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v7
-
-      - name: Install APT Repository Tools
-        run: |
-          set -euo pipefail
-          export DEBIAN_FRONTEND=noninteractive
-          sudo apt update
-          sudo apt install -y --no-install-recommends apt-utils gnupg gzip
-
-      - name: Download .deb Artifacts from Build Workflow
-        uses: actions/download-artifact@v8
-        with:
-          name: deb-packages
-          path: ./build-output
-
-      - name: Generate APT Repository
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-          APT_REPO_OUTPUT: ${{ runner.temp }}/apt-repo
-        run: .github/scripts/make-apt-repo.sh ./build-output "$APT_REPO_OUTPUT"
-
-      - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v5
-        env:
-          APT_REPO_OUTPUT: ${{ runner.temp }}/apt-repo
-        with:
-          path: ${{ env.APT_REPO_OUTPUT }}
-
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
