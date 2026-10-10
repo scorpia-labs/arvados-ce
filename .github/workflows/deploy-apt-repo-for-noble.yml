@@ -2,7 +2,8 @@ name: Deploy APT Repository
 
 on:
   workflow_run:
-    workflows: ["Build Debian Packages"]
+    workflows:
+      - Build Debian Packages
     types:
       - completed
     branches:
@@ -24,8 +25,6 @@ jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-slim
-    env:
-      APT_REPO_OUTPUT: ${{ runner.temp }}/apt-repo
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -53,10 +52,13 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          APT_REPO_OUTPUT: ${{ runner.temp }}/apt-repo
         run: .github/scripts/make-apt-repo.sh ./build-output "$APT_REPO_OUTPUT"
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v5
+        env:
+          APT_REPO_OUTPUT: ${{ runner.temp }}/apt-repo
         with:
           path: ${{ env.APT_REPO_OUTPUT }}
 
