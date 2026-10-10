@@ -1,30 +1,57 @@
-name: Deploy APT Repository
+name: Build and Deploy Debian Package APT Repo
 
 on:
-  workflow_run:
-    workflows:
-      - Build Debian Packages
-    types:
-      - completed
+  push:
     branches:
       - main
       - github-actions-*
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-  actions: read
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
-
 jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Prepare Build Environment
+        run: |
+          set -euo pipefail
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt update
+          sudo apt install -y pipx
+          pipx ensurepath
+          pipx uninstall ansible-core
+          "$GITHUB_WORKSPACE/tools/ansible/install-ansible.sh"
+
+      - name: Build Debian Packages
+        run: |
+          set -euo pipefail
+          export WORKSPACE="$GITHUB_WORKSPACE"
+          cd "$WORKSPACE/build" && ./run-build-packages-one-target.sh --target ubuntu2404 --force-build
+
+      - name: Upload .deb Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: deb-packages
+          path: ./packages/ubuntu2404/*.deb
+          retention-days: 4
+          if-no-files-found: error
+
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    needs:
+      - build
     runs-on: ubuntu-slim
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+      actions: read
+    concurrency:
+      group: "pages"
+      cancel-in-progress: true
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
