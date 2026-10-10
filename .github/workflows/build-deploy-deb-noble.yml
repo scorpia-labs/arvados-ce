@@ -10,8 +10,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    environment:
-      name: github-pages
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v7
@@ -73,8 +71,6 @@ jobs:
         with:
           name: deb-packages
           path: ./build-output
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate APT Repository
         env:
