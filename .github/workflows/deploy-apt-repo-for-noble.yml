@@ -1,0 +1,65 @@
+name: Deploy APT Repository
+
+on:
+  workflow_run:
+    workflows: ["Build Debian Packages"]
+    types:
+      - completed
+    branches:
+      - main
+      - github-actions-*
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: read
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-slim
+    env:
+      APT_REPO_OUTPUT: ${{ runner.temp }}/apt-repo
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Install APT Repository Tools
+        run: |
+          set -euo pipefail
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt update
+          sudo apt install -y --no-install-recommends apt-utils gnupg gzip
+
+      - name: Download .deb Artifacts from Build Workflow
+        uses: actions/download-artifact@v8
+        with:
+          name: deb-packages
+          path: ./build-output
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate APT Repository
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: .github/scripts/make-apt-repo.sh ./build-output "$APT_REPO_OUTPUT"
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: ${{ env.APT_REPO_OUTPUT }}
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
