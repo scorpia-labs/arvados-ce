@@ -1,0 +1,23 @@
+arvados_test_all:
+  hosts:
+    localhost:
+      ansible_connection: local
+  vars:
+    arvados_config_file: "{{ lookup('env', 'GITHUB_WORKSPACE') }}/.github/ansible/files/arvados-config.yml"
+    arvados_python_version: "3.12.15"
+    arvados_nodejs_version: "22.23.3"
+    arvados_ruby_version: "3.2.11"
+    arvados_go_version: "1.26.9"
+    compute_singularity_version: "4.1.5"
+
+    # The primary user doing Arvados development and tests.
+    # This user will be added to the `docker` group.
+    # It defaults to the name of the user running `ansible-playbook`.
+    # If you want to configure a different user, set that here:
+    #arvados_dev_user: USERNAME
+
+    # By default, the playbook installs old versions of Python and Ruby from source.
+    # This helps you make sure you don't accidentally use too-new features during
+    # development. If you're sure you don't need that—for example, you specifically
+    # want to test a distribution's packaged version—set this flag:
+    #arvados_dev_from_pkgs: true
