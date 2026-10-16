@@ -15,6 +15,7 @@
   become: yes
   ansible.builtin.file:
     state: link
+    force: yes
     src: "{{ (arvados_ruby_destdir, 'bin', item)|path_join }}"
     dest: "{{ ('/usr/local/bin', item)|path_join }}"
   loop:
