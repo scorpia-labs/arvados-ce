@@ -47,7 +47,9 @@ jobs:
           "$GITHUB_WORKSPACE/tools/ansible/install-ansible.sh"
 
       - name: Run install-dev-tools Playbook
-        run: ansible-playbook -i "$GITHUB_WORKSPACE/.github/ansible/inventories/ci-runner-inv.yml" "$GITHUB_WORKSPACE/tools/ansible/install-dev-tools.yml"
+        run: |
+          set -uxo pipefail
+          ansible-playbook -i "$GITHUB_WORKSPACE/.github/ansible/inventories/ci-runner-inv.yml" "$GITHUB_WORKSPACE/tools/ansible/install-dev-tools.yml"
 
       - name: Run Test Script
         run: |
