@@ -52,7 +52,7 @@ jobs:
           export ANSIBLE_REMOTE_TMP=/var/tmp/ansible
           sudo mkdir -p "$ANSIBLE_REMOTE_TMP"
           sudo chmod 0777 "$ANSIBLE_REMOTE_TMP"
-          ANSIBLE_DEBUG=true ANSIBLE_VERBOSITY=4 ansible-playbook -i "$GITHUB_WORKSPACE/.github/ansible/inventories/ci-runner-inv.yml" "$GITHUB_WORKSPACE/tools/ansible/install-dev-tools.yml"
+          ANSIBLE_VERBOSITY=4 ansible-playbook -i "$GITHUB_WORKSPACE/.github/ansible/inventories/ci-runner-inv.yml" "$GITHUB_WORKSPACE/tools/ansible/install-dev-tools.yml"
 
       - name: Run Test Script
         run: |
