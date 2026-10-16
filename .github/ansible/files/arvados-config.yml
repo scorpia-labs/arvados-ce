@@ -6,5 +6,5 @@ Clusters:
         host: localhost
         port: "5432"
         dbname: arvados_ci_test
-        user: arvados_ci_runner
+        user: arvados
         password: aBRCltWCs06WPllx0PugeJIuSFKZqPtrloqlbdHnQlf-hbs-pC8CyP4VObgJS4cxHZHSolgWRr2rWO74h2vr0A
