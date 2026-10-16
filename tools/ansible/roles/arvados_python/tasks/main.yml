@@ -28,6 +28,5 @@
   become: yes
   ansible.builtin.file:
     state: link
-    force: yes
     src: "{{ arvados_python_major_minor }}"
     path: /usr/local/bin/python3
