@@ -7,4 +7,4 @@ Clusters:
         port: "5432"
         dbname: arvados_ci_test
         user: arvados_ci_runner
-        password: aBRCltWCs06WPllx0PugeJIuSFKZqPtrloqlbdHnQlf-hbs-pC8CyP4VObgJS4cxHZHSolgWRr2rWO74h2vr0A
+        password: aBRCltWCs06WPllx0PugeJIuSFKZqPtrloqlbdHnQlfhbspC8CyP4VObgJS4cxHZ
