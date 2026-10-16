@@ -40,6 +40,7 @@ jobs:
           set -uxo pipefail
           mkdir -p "$HOME/.gradle"
           echo "org.gradle.daemon=false" >> "$HOME/.gradle/gradle.properties"
+          sudo rm -rf /usr/local/bin/* /usr/local/lib/node_modules /usr/local/rubies
           sudo apt update && sudo apt install -y --no-install-recommends pipx
           pipx ensurepath
           pipx uninstall ansible-core
