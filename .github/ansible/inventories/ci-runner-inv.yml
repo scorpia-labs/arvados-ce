@@ -3,6 +3,7 @@ arvados_test_all:
     localhost:
       ansible_connection: local
   vars:
+    ansible_remote_tmp: "/var/tmp/.ansible-{{ ansible_user }}/tmp"
     arvados_config_file: "{{ lookup('env', 'GITHUB_WORKSPACE') }}/.github/ansible/files/arvados-config.yml"
     arvados_python_version: "3.12.15"
     arvados_nodejs_version: "22.23.3"
