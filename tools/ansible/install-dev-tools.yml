@@ -412,15 +412,28 @@
 
 - hosts: arvados_test_workbench
   tasks:
-    - name: Install Workbench test requirements
+    - name: Install Firefox for Workbench tests
+      become: yes
+      block:
+        - name: Install firefox-esr package (APT)
+          when: "ansible_distribution == 'Debian'"
+          ansible.builtin.apt:
+            name:
+              - firefox-esr
+        - name: Install firefox snap from esr channel (Snap)
+          when: "ansible_distribution == 'Ubuntu'"
+          community.general.snap:
+            name:
+              - firefox
+            channel: esr/stable
+    - name: Install Workbench test requirements (APT)
       become: yes
       ansible.builtin.apt:
         name:
           # <https://docs.cypress.io/app/get-started/install-cypress#Linux-Prerequisites>
-          - firefox-esr
-          - libasound2
+          - libasound2t64
           - libgbm-dev
-          - libgtk-3-0
+          - libgtk-3-0t64
           - libgtk2.0-0
           - libnotify-dev
           - libnss3
