@@ -1,0 +1,10 @@
+# The following "credentials" are not secret -- used for test only.
+Clusters:
+  zzzzz:
+    PostgreSQL:
+      Connection:
+        host: localhost
+        port: "5432"
+        dbname: arvados_ci_test
+        user: arvados_ci_runner
+        password: aBRCltWCs06WPllx0PugeJIuSFKZqPtrloqlbdHnQlf-hbs-pC8CyP4VObgJS4cxHZHSolgWRr2rWO74h2vr0A
