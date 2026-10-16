@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - github-actions-*
       - build-packages-*
   workflow_dispatch:
 
