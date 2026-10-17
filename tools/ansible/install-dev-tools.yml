@@ -197,6 +197,7 @@
         name: arvados_postgresql
       vars:
         arvados_postgresql_config: {}
+        arvados_postgresql_hba_databases: all
         arvados_postgresql_hba_sources:
           - "127.0.0.0/24"
           - "::1/128"
