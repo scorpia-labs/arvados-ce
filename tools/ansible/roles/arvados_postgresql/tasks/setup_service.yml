@@ -55,4 +55,3 @@
     name: "postgresql@{{ (arvados_postgresql_hba_file or pg_hba_query.query_result.0.hba_file)|dirname|relpath('/etc/postgresql')|replace('/', '-') }}.service"
     state: "{{ 'restarted' if arvados_postgresql_config_update.changed else 'reloaded' if pg_hba_entries.changed else 'started' }}"
     enabled: yes
-    daemon_reload: yes
