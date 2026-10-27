@@ -57,4 +57,5 @@ jobs:
           . /etc/profile.d/arvados-test.sh
           export ARVADOS_TEST_TEMP="$HOME/.config/arvados-test"
           mkdir -p "$ARVADOS_TEST_TEMP"
+          newgrp docker
           "$GITHUB_WORKSPACE/build/run-tests.sh" --temp "$ARVADOS_TEST_TEMP"
