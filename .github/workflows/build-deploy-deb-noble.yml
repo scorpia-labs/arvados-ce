@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - devel
       - build-packages-*
   workflow_dispatch:
 
