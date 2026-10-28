@@ -12,6 +12,7 @@
       - build-essential
       - libglib2.0-dev
       - libseccomp-dev
+      - libtool
       - pkg-config
       - squashfs-tools
 
