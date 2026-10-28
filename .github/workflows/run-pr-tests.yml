@@ -1,0 +1,61 @@
+name: Run Tests for Pull Request
+
+on:
+  pull_request:
+    branches-ignore:
+      - build-packages-*
+  push:
+    branches:
+      - github-actions-*
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci-tests:
+    runs-on: ubuntu-24.04
+    environment:
+      name: >-
+        ${{
+          (
+            github.event.pull_request.head.repo.fork
+            && !contains(fromJSON(vars.TRUSTED_ACTORS || '[]'), github.actor)
+          )
+          && 'external-pr-approval'
+          || ''
+        }}
+      deployment: false
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Prepare Build Environment
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          set -uxo pipefail
+          mkdir -p "$HOME/.gradle"
+          echo "org.gradle.daemon=false" >> "$HOME/.gradle/gradle.properties"
+          sudo rm -rf /usr/local/bin/* /usr/local/lib/node_modules /usr/local/rubies
+          sudo apt update && sudo apt install -y --no-install-recommends pipx
+          pipx ensurepath
+          pipx uninstall ansible-core
+          "$GITHUB_WORKSPACE/tools/ansible/install-ansible.sh"
+
+      - name: Run install-dev-tools Playbook
+        run: |
+          set -uxo pipefail
+          ansible-playbook -i "$GITHUB_WORKSPACE/.github/ansible/inventories/ci-runner-inv.yml" "$GITHUB_WORKSPACE/tools/ansible/install-dev-tools.yml"
+
+      - name: Run Test Script
+        run: |
+          set -uxo pipefail
+          . /etc/profile.d/arvados-test.sh
+          export ARVADOS_TEST_TEMP="$HOME/.config/arvados-test"
+          mkdir -p "$ARVADOS_TEST_TEMP"
+          newgrp docker
+          "$GITHUB_WORKSPACE/build/run-tests.sh" --temp "$ARVADOS_TEST_TEMP"
