@@ -18,13 +18,18 @@ jobs:
       packages: write
       contents: read
     steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v7
+      - name: Install ORAS
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: sudo apt update && sudo apt install -y --no-install-recommends oras
 
       - name: Configure apt to retain downloaded .deb packages
         run: |
           echo 'APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/99keep-debs
           sudo rm -rf /var/cache/apt/archives/*.deb
+
+      - name: Checkout Source Code
+        uses: actions/checkout@v7
 
       - name: Prepare to Build Environment
         env:

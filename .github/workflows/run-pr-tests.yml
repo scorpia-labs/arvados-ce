@@ -33,6 +33,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install ORAS
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: sudo apt update && sudo apt install -y --no-install-recommends oras
+
       - name: Pull and extract prebuilt /opt environment
         working-directory: ${{ runner.temp }}
         run: |
