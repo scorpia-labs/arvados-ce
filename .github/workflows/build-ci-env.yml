@@ -1,0 +1,60 @@
+name: Build CI Environment
+
+on:
+  push:
+    branches:
+      - devel
+      - main
+      - github-actions-*
+    paths:
+      - .github/**
+      - tools/ansible/**
+  workflow_dispatch:
+
+jobs:
+  build-ci-env:
+    runs-on: ubuntu-24.04
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v7
+
+      - name: Configure apt to retain downloaded .deb packages
+        run: |
+          echo 'APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/99keep-debs
+          sudo rm -rf /var/cache/apt/archives/*.deb
+
+      - name: Prepare to Build Environment
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          set -uxo pipefail
+          sudo rm -rf /usr/local/bin/* /usr/local/lib/node_modules /usr/local/rubies
+          sudo apt update && sudo apt install -y --no-install-recommends pipx
+          pipx ensurepath
+          pipx uninstall ansible-core
+          "$GITHUB_WORKSPACE/tools/ansible/install-ansible.sh"
+
+      - name: Run install-dev-tools Playbook
+        run: |
+          set -uxo pipefail
+          ansible-playbook -i "$GITHUB_WORKSPACE/.github/ansible/inventories/ci-runner-inv.yml" "$GITHUB_WORKSPACE/tools/ansible/install-dev-tools.yml"
+
+      - name: Archive compiled software in /opt and apt cache
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -x
+          sudo mkdir -p /opt/ci-apt-cache
+          sudo mv /var/cache/apt/archives/*.deb /opt/ci-apt-cache/
+          sudo tar --zstd -cf ci-env.tar.zst /opt/ci-apt-cache /opt/arvados-ansible /opt/arvados-bundler /opt/go-* /opt/node-* /opt/Python-* /opt/ruby-* /opt/singularity-*
+
+      - name: Push archive to GHCR via ORAS
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -uo pipefail
+          echo "${{ secrets.GITHUB_TOKEN }}" | oras login ghcr.io -u "${{ github.actor }}" --password-stdin
+          IMAGE_REF="ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}-ci-env:ubuntu-24.04"
+          IMAGE_REF="$(echo "$IMAGE_REF" | tr '[:upper:]' '[:lower:]')"
+          oras push "$IMAGE_REF" ci-env.tar.zst:application/zstd

@@ -33,13 +33,26 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Prepare Build Environment
+      - name: Pull and extract prebuilt /opt environment
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -uxo pipefail
+          ARTIFACT="${{ vars.CI_ENV_ARTIFACT || 'ghcr.io/UPSTREAM_OWNER/REPO_NAME-ci-env:ubuntu-24.04' }}"
+          oras pull "$ARTIFACT"
+          sudo tar --zstd -xf ci-env.tar.zst -C /
+          rm -f ci-env.tar.zst
+
+      - name: Apply .deb cache
+        run: |
+          if compgen -G "/opt/ci-apt-cache/*.deb" > /dev/null; then
+            sudo mv /opt/ci-apt-cache/*.deb /var/cache/apt/archives/
+          fi
+
+      - name: Prepare Test Environment
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
           set -uxo pipefail
-          mkdir -p "$HOME/.gradle"
-          echo "org.gradle.daemon=false" >> "$HOME/.gradle/gradle.properties"
           sudo rm -rf /usr/local/bin/* /usr/local/lib/node_modules /usr/local/rubies
           sudo apt update && sudo apt install -y --no-install-recommends pipx
           pipx ensurepath
@@ -54,6 +67,8 @@ jobs:
       - name: Run Test Script
         run: |
           set -uxo pipefail
+          mkdir -p "$HOME/.gradle"
+          echo "org.gradle.daemon=false" >> "$HOME/.gradle/gradle.properties"
           . /etc/profile.d/arvados-test.sh
           export ARVADOS_TEST_TEMP="$HOME/.config/arvados-test"
           mkdir -p "$ARVADOS_TEST_TEMP"
