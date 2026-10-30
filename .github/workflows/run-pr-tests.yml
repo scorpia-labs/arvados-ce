@@ -42,7 +42,7 @@ jobs:
         working-directory: ${{ runner.temp }}
         run: |
           set -uxo pipefail
-          ARTIFACT="${{ vars.CI_ENV_ARTIFACT || 'ghcr.io/UPSTREAM_OWNER/REPO_NAME-ci-env:ubuntu-24.04' }}"
+          ARTIFACT="${{ vars.CI_ENV_ARTIFACT || 'ghcr.io/scorpia-labs/arvados-ce-ci-env:ubuntu-24.04' }}"
           oras pull "$ARTIFACT"
           sudo tar --zstd -xf ci-env.tar.zst -C /
           rm -f ci-env.tar.zst
