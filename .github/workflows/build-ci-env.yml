@@ -6,7 +6,8 @@ on:
       - devel
       - main
     paths:
-      - .github/**
+      - .github/workflows/build-ci-env.yml
+      - .github/ansible/inventories/ci-runner-inv.yml
       - tools/ansible/**
       - build/**
   workflow_dispatch:
@@ -23,11 +24,6 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: sudo apt update && sudo apt install -y --no-install-recommends oras
 
-      - name: Configure apt to retain downloaded .deb packages
-        run: |
-          echo 'APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/99keep-debs
-          sudo rm -rf /var/cache/apt/archives/*.deb
-
       - name: Checkout Source Code
         uses: actions/checkout@v7
 
@@ -37,24 +33,33 @@ jobs:
         run: |
           set -uxo pipefail
           sudo rm -rf /usr/local/bin/* /usr/local/lib/node_modules /usr/local/rubies
-          sudo apt install -y --no-install-recommends pipx
-          pipx ensurepath
-          pipx uninstall ansible-core
+          sudo apt update && sudo apt install -y --no-install-recommends pipx
+          pipx uninstall-all
           "$GITHUB_WORKSPACE/tools/ansible/install-ansible.sh"
+
+      - name: Configure apt to retain downloaded .deb packages
+        run: |
+          echo 'APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/99keep-debs
+          sudo rm -rf /var/cache/apt/archives/*.deb
 
       - name: Run install-dev-tools Playbook
         run: |
           set -uxo pipefail
           ansible-playbook -i "$GITHUB_WORKSPACE/.github/ansible/inventories/ci-runner-inv.yml" "$GITHUB_WORKSPACE/tools/ansible/install-dev-tools.yml"
 
-      - name: Archive Compiled Software in /opt and APT Cache
-        working-directory: ${{ runner.temp }}
+      - name: Archive Installed Software in /opt, APT Cache, and Ansible Dir
         run: |
-          set -x
+          set -ux
+          cd "$HOME"
           sudo mkdir -p /opt/ci-apt-cache
           sudo mv /var/cache/apt/archives/*.deb /opt/ci-apt-cache/
-          tar --zstd -cf ci-env.tar.zst /opt/ci-apt-cache /opt/arvados-ansible /opt/arvados-bundler /opt/go-* /opt/node-* /opt/Python-* /opt/ruby-* /opt/singularity-*
+          tar --zstd -cf ci-env.tar.zst /opt/ci-apt-cache \
+            "$PIPX_HOME" "$PIPX_BIN_DIR" \
+            /opt/arvados-ansible /opt/arvados-bundler \
+            /opt/go-* /opt/node-* /opt/Python-* /opt/ruby-* /opt/singularity-*
+          tar --zstd -cf dot-ansible.tar.zst .ansible/collections
           ls -l ci-env.tar.zst
+          ls -l dot-ansible.tar.zst
 
       - name: Push Archive to GHCR Using ORAS
         working-directory: ${{ runner.temp }}
@@ -65,10 +70,12 @@ jobs:
           OWNER="$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"
           echo "PKG_NAME=${PKG_NAME}" >> "$GITHUB_ENV"
 
+          mv "$HOME/ci-env.tar.zst" "$HOME/dot-ansible.tar.zst" .
           oras push "ghcr.io/${OWNER}/${PKG_NAME}:ubuntu-24.04" \
             --annotation "org.opencontainers.image.source=https://github.com/${{ github.repository }}" \
             --annotation "org.opencontainers.image.description=Pre-built Arvados-CE CI environment for Ubuntu 24.04" \
-            ci-env.tar.zst:application/zstd
+            ci-env.tar.zst:application/zstd \
+            dot-ansible.tar.zst:application/zstd
 
       - name: Clean Up Older CI Env Package Versions
         uses: actions/delete-package-versions@v5
