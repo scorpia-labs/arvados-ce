@@ -12,3 +12,4 @@ docker_dnf_packages:
   docker-ce: "3:28.*"
   docker-ce-cli: "1:28.*"
   docker-ce-rootless-extras: "28.*"
+  docker-buildx-plugin: ""
