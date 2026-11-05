@@ -55,7 +55,7 @@ jobs:
           set -uxo pipefail
           sudo rm -rf /usr/local/bin/* /usr/local/lib/node_modules /usr/local/rubies
           . /opt/arvados-ansible/bin/activate
-          ansible-playbook -i "$GITHUB_WORKSPACE/.github/ansible/inventories/ci-runner-inv.yml" "$GITHUB_WORKSPACE/tools/ansible/install-dev-tools.yml"
+          ansible-playbook -i "$GITHUB_WORKSPACE/.github/ansible/inventories/docker-builder-inv.yml" "$GITHUB_WORKSPACE/tools/ansible/install-dev-tools.yml"
 
       - name: Build Docker Image
         run: |
