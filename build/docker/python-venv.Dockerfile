@@ -19,7 +19,7 @@ RUN /opt/arvados-py/bin/pip install -qq --no-cache-dir --no-input \
 
 ### Stage 2
 FROM ubuntu:noble
-MAINTAINER Scorpia Labs <scorpia.labs.wz@gmail.com>
+LABEL org.opencontainers.image.authors="Scorpia Labs <scorpia.labs.wz@gmail.com>"
 ARG APT_PKGLIST
 ARG OLD_PKGNAME=python3-arvados-python-client
 
