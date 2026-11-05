@@ -542,7 +542,7 @@ def upload_docker(arvrunner, tool, runtimeContext):
 
             arvados_cwl.arvdocker.arv_docker_get_image(arvrunner.api, docker_req, True, runtimeContext)
         else:
-            arvados_cwl.arvdocker.arv_docker_get_image(arvrunner.api, {"dockerPull": "arvados/jobs:"+__version__},
+            arvados_cwl.arvdocker.arv_docker_get_image(arvrunner.api, {"dockerPull": "scorpia-labs/ergon:"+__version__},
                                                        True, runtimeContext)
     elif isinstance(tool, cwltool.workflow.Workflow):
         for s in tool.steps:
@@ -845,7 +845,7 @@ class Runner(Process):
         self.output_tags = output_tags
         self.name = name
         self.on_error = on_error
-        self.jobs_image = submit_runner_image or "arvados/jobs:"+__version__
+        self.jobs_image = submit_runner_image or "scorpia-labs/ergon:"+__version__
         self.intermediate_output_ttl = intermediate_output_ttl
         self.priority = priority
         self.secret_store = secret_store

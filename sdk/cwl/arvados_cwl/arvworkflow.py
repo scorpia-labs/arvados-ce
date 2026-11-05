@@ -419,7 +419,7 @@ def upload_workflow(arvRunner, tool, job_order, project_uuid,
 
     if "acrContainerImage" not in wf_runner_resources:
         wf_runner_resources["acrContainerImage"] = arvados_jobs_image(arvRunner,
-                                                                      submit_runner_image or "arvados/jobs:"+__version__,
+                                                                      submit_runner_image or "scorpia-labs/ergon:"+__version__,
                                                                       runtimeContext)
 
     if submit_runner_ram:
