@@ -1,0 +1,76 @@
+name: Build Jobs Docker Image for Workflow Runs
+
+on:
+  push:
+    branches:
+      - devel
+      - main
+      - build-packages-*
+  workflow_dispatch:
+
+jobs:
+  build-docker:
+    runs-on: ubuntu-24.04
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Install ORAS
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: sudo apt update && sudo apt install -y --no-install-recommends oras
+
+      - name: Pull and Extract Pre-Built /opt Environment and Ansible Dir
+        working-directory: ${{ runner.temp }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CUSTOM_ARTIFACT: ${{ vars.CI_ENV_ARTIFACT }}
+        run: |
+          set -uxo pipefail
+          if [ -n "$CUSTOM_ARTIFACT" ]; then
+            ARTIFACT="$CUSTOM_ARTIFACT"
+          else
+            TARGET_REPO="$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+            ARTIFACT="ghcr.io/${TARGET_REPO}-ci-env:ubuntu-24.04"
+          fi
+          oras pull "$ARTIFACT"
+          sudo tar --zstd -xf ci-env.tar.zst -C /
+          tar --zstd -xf dot-ansible.tar.zst -C "$HOME"
+          rm -f ci-env.tar.zst dot-ansible.tar.zst
+
+      - name: Apply .deb Cache
+        run: |
+          if compgen -G "/opt/ci-apt-cache/*.deb" > /dev/null; then
+            sudo mkdir -p /var/cache/apt/archives
+            sudo mv /opt/ci-apt-cache/*.deb /var/cache/apt/archives/
+          fi
+
+      - name: Checkout Source Code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Run install-dev-tools Playbook
+        run: |
+          set -uxo pipefail
+          sudo rm -rf /usr/local/bin/* /usr/local/lib/node_modules /usr/local/rubies
+          . /opt/arvados-ansible/bin/activate
+          ansible-playbook -i "$GITHUB_WORKSPACE/.github/ansible/inventories/ci-runner-inv.yml" "$GITHUB_WORKSPACE/tools/ansible/install-dev-tools.yml"
+
+      - name: Build Docker Image
+        run: |
+          set -uxo pipefail
+          mkdir -p "$HOME/gh-docker-build-venv"
+          python3 -m venv "$HOME/gh-docker-build-venv"
+          . "$HOME/gh-docker-build-venv/bin/activate"
+          pip3 install -r "$GITHUB_WORKSPACE/build/requirements.build.txt"
+          WORKSPACE="$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/build/build_docker_image.py" scorpia-labs/ergon
+          IMAGE_TAG="$(docker images --format json scorpia-labs/ergon | jq -r .Tag)"
+          docker tag "scorpia-labs/ergon:$IMAGE_TAG" "ghcr.io/scorpia-labs/ergon:$IMAGE_TAG"
+
+      - name: Deploy Docker Image
+        id: deployment
+        run: |
+          set -uo pipefail
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker push --all-tags --quiet ghcr.io/scorpia-labs/ergon
