@@ -250,7 +250,7 @@ const DEFAULT_ADVANCED_FORM_VALUES: Partial<RunProcessAdvancedFormData> = {
     [VCPUS_FIELD]: 1,
     [RAM_FIELD]: 1073741824,
     [KEEP_CACHE_RAM_FIELD]: 268435456,
-    [RUNNER_IMAGE_FIELD]: "arvados/jobs"
+    [RUNNER_IMAGE_FIELD]: "ghcr.io/scorpia-labs/ergon"
 };
 
 const normalizeInputKeys = (inputs: WorkflowInputsData): WorkflowInputsData =>
