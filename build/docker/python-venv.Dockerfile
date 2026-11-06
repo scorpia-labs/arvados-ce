@@ -37,4 +37,4 @@ RUN deluser ubuntu && rm -rf /home/ubuntu \
 USER crunch
 ENV PATH=/opt/arvados-py/bin:/usr/local/bin:/usr/bin:/bin
 
-COPY --from=0 /opt/arvados-py/ /opt/arvados-py/
+COPY --from=0 --exclude=lib/python3.*/site-packages/googleapiclient/discovery_cache/documents/*.json /opt/arvados-py/ /opt/arvados-py/
