@@ -76,10 +76,10 @@ def stubs(wfdetails=('submit_wf.cwl', None)):
 
             stubs.keep_client = keep_client2
             stubs.docker_images = {
-                "scorpia-labs/ergon:"+arvados_cwl.__version__: [("zzzzz-4zz18-zzzzzzzzzzzzzd3", {})],
+                "ghcr.io/scorpia-labs/ergon:"+arvados_cwl.__version__: [("zzzzz-4zz18-zzzzzzzzzzzzzd3", {})],
                 "debian:buster-slim": [("zzzzz-4zz18-zzzzzzzzzzzzzd4", {})],
-                "scorpia-labs/ergon:123": [("zzzzz-4zz18-zzzzzzzzzzzzzd5", {})],
-                "scorpia-labs/ergon:latest": [("zzzzz-4zz18-zzzzzzzzzzzzzd6", {})],
+                "ghcr.io/scorpia-labs/ergon:123": [("zzzzz-4zz18-zzzzzzzzzzzzzd5", {})],
+                "ghcr.io/scorpia-labs/ergon:latest": [("zzzzz-4zz18-zzzzzzzzzzzzzd6", {})],
             }
             def kd(a, b, image_name=None, image_tag=None, project_uuid=None):
                 return stubs.docker_images.get("%s:%s" % (image_name, image_tag), [])
@@ -1024,7 +1024,7 @@ class TestSubmit(unittest.TestCase):
     @stubs()
     def test_submit_container_runner_image(self, stubs):
         exited = arvados_cwl.main(
-            ["--submit", "--no-wait", "--api=containers", "--debug", "--submit-runner-image=scorpia-labs/ergon:123",
+            ["--submit", "--no-wait", "--api=containers", "--debug", "--submit-runner-image=ghcr.io/scorpia-labs/ergon:123",
                 "tests/wf/submit_wf.cwl", "tests/submit_test_job.json"],
             stubs.capture_stdout, sys.stderr, api_client=stubs.api, keep_client=stubs.keep_client)
 
@@ -1108,7 +1108,7 @@ class TestSubmit(unittest.TestCase):
             {"items": [{"created_at": "2023-08-25T12:34:56.123456Z",
                         "head_uuid": "zzzzz-4zz18-zzzzzzzzzzzzzzb",
                         "link_class": "docker_image_repo+tag",
-                        "name": "scorpia-labs/ergon:"+arvados_cwl.__version__,
+                        "name": "ghcr.io/scorpia-labs/ergon:"+arvados_cwl.__version__,
                         "owner_uuid": "",
                         "uuid": "zzzzz-o0j2j-arvadosjobsrepo",
                         "properties": {"image_timestamp": ""}}]},
@@ -1140,7 +1140,7 @@ class TestSubmit(unittest.TestCase):
                                                                   "portable_data_hash": "9999999999999999999999999999999b+99"}
 
         self.assertEqual("9999999999999999999999999999999b+99",
-                         arvados_cwl.runner.arvados_jobs_image(arvrunner, "scorpia-labs/ergon:"+arvados_cwl.__version__, arvrunner.runtimeContext))
+                         arvados_cwl.runner.arvados_jobs_image(arvrunner, "ghcr.io/scorpia-labs/ergon:"+arvados_cwl.__version__, arvrunner.runtimeContext))
 
 
     @stubs()

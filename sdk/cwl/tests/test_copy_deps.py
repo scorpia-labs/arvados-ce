@@ -59,7 +59,7 @@ def check_dep_contents(arv_or_contents, group):
     ), f"couldn't find collection depedency in group {group['uuid']}"
     assert any(
         c['kind'] == 'arvados#collection'
-        and c['name'].startswith('Docker image scorpia-labs ergon')
+        and c['name'].startswith('Docker image ghcr.io scorpia-labs ergon')
         for c in items
     ), f"couldn't find jobs image in group {group['uuid']}"
 

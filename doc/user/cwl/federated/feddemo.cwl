@@ -19,7 +19,7 @@ requirements:
 
   DockerRequirement:
     # Replace this with your own Docker container
-    dockerPull: scorpia-labs/ergon
+    dockerPull: ghcr.io/scorpia-labs/ergon
 
   # Define a record type so we can conveniently associate the input
   # file and the cluster where the task should run.
