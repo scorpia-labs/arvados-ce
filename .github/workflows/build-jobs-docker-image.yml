@@ -65,6 +65,8 @@ jobs:
           . "$HOME/gh-docker-build-venv/bin/activate"
           pip3 install -r "$GITHUB_WORKSPACE/build/requirements.build.txt"
           WORKSPACE="$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/build/build_docker_image.py" --environment development ghcr.io/scorpia-labs/ergon
+          IMAGE_TAG="$(docker images --format=json ghcr.io/scorpia-labs/ergon | jq -r .Tag)"
+          docker tag "ghcr.io/scorpia-labs/ergon:${IMAGE_TAG}" ghcr.io/scorpia-labs/ergon:devel
 
       - name: Deploy Docker Image
         id: deployment
