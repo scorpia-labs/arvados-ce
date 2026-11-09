@@ -28,4 +28,5 @@
   ansible.builtin.apt:
     name: docker-ce
     install_recommends: false
+    state: latest
     update_cache: "{{ docker_apt_repo.changed }}"
