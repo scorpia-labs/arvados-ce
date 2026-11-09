@@ -37,7 +37,7 @@ jobs:
           pipx uninstall-all
           "$GITHUB_WORKSPACE/tools/ansible/install-ansible.sh"
 
-      - name: Configure apt to retain downloaded .deb packages
+      - name: Configure APT to Retain Downloaded .deb Packages
         run: |
           echo 'APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/99keep-debs
           sudo rm -rf /var/cache/apt/archives/*.deb
