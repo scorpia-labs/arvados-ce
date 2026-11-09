@@ -157,9 +157,9 @@ class ClusterActivityImage(PythonVenvImage):
 
 @DockerImage.register
 class JobsImage(PythonVenvImage):
-    NAME = 'arvados/jobs'
+    NAME = 'ghcr.io/scorpia-labs/ergon'
     _BUILD_ARGS = {
-        'APT_PKGLIST': 'libcurl4 nodejs',
+        'APT_PKGLIST': 'adduser libcurl4 nodejs',
         'OLD_PKGNAME': 'python3-arvados-cwl-runner',
     }
     _PACKAGE_NAME = 'arvados-cwl-runner'

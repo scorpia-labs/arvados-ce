@@ -46,7 +46,7 @@ def check_core_contents(arv, group, wf_uuid):
 
 
 def check_dep_contents(arv_or_contents, group):
-    """Assert `group` contains the `testdir` collection and arvados/jobs image"""
+    """Assert `group` contains the `testdir` collection and scorpia-labs/ergon image"""
     try:
         items = arv_or_contents['items']
     except TypeError:
@@ -59,7 +59,7 @@ def check_dep_contents(arv_or_contents, group):
     ), f"couldn't find collection depedency in group {group['uuid']}"
     assert any(
         c['kind'] == 'arvados#collection'
-        and c['name'].startswith('Docker image arvados jobs')
+        and c['name'].startswith('Docker image ghcr.io scorpia-labs ergon')
         for c in items
     ), f"couldn't find jobs image in group {group['uuid']}"
 

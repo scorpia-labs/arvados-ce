@@ -110,7 +110,7 @@ def coll_testdir(arv_session):
 
 @pytest.fixture(scope='session')
 def jobs_docker_image(arv_session):
-    image_name = 'arvados/jobs'
+    image_name = 'ghcr.io/scorpia-labs/ergon'
     image_tag = acr_version.__version__
     image_fullname = f'{image_name}:{image_tag}'
 

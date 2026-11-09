@@ -149,7 +149,7 @@ def arg_parser():  # type: () -> argparse.ArgumentParser
                         default=None)
 
     parser.add_argument("--submit-runner-image",
-                        help="Docker image for workflow runner job, default arvados/jobs:%s" % __version__,
+                        help="Docker image for workflow runner job, default ghcr.io/scorpia-labs/ergon:%s" % __version__,
                         default=None)
 
     parser.add_argument("--always-submit-runner", action="store_true",
@@ -464,7 +464,7 @@ def main(args=sys.argv[1:],
         # unit tests.
         stdout = None
 
-    executor.loadingContext.default_docker_image = arvargs.submit_runner_image or "arvados/jobs:"+__version__
+    executor.loadingContext.default_docker_image = arvargs.submit_runner_image or "ghcr.io/scorpia-labs/ergon:"+__version__
 
     if arvargs.workflow.startswith("arvwf:") or workflow_uuid_pattern.match(arvargs.workflow) or arvargs.workflow.startswith("keep:"):
         executor.loadingContext.do_validate = False

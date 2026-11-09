@@ -26,7 +26,9 @@
 - name: Install Docker package
   become: yes
   ansible.builtin.apt:
-    name: docker-ce
+    name:
+      - docker-ce
+      - docker-buildx-plugin
     install_recommends: false
     state: latest
     update_cache: "{{ docker_apt_repo.changed }}"
