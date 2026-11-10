@@ -7,7 +7,7 @@
 FROM ubuntu:noble
 
 RUN apt-get update -q \
- && DEBIAN_FRONTEND=noninteractive apt-get install -qy python3-venv \
+ && DEBIAN_FRONTEND=noninteractive apt-get install -qy --no-install-recommends python3-venv \
  && python3 -m venv /opt/arvados-py
 
 # The build script sets up our build context with all the Python source
@@ -25,13 +25,12 @@ ARG OLD_PKGNAME=python3-arvados-python-client
 
 RUN apt-get update -q \
  && DEBIAN_FRONTEND=noninteractive apt-get install -qy --no-install-recommends python3 $APT_PKGLIST \
- && rm -rf /var/cache/apt/archives /var/lib/apt/lists/*
-
-# The symlinks provide path compatibility with old package-based images.
-RUN deluser ubuntu && rm -rf /home/ubuntu \
+ && rm -rf /var/cache/apt/archives /var/lib/apt/lists/* \
+ # The symlinks provide path compatibility with old package-based images. \
+ && deluser ubuntu && rm -rf /home/ubuntu \
  && adduser --disabled-password --comment 'Crunch execution user' crunch \
  && install --directory --owner=crunch --group=crunch --mode=0700 \
-    /keep /tmp/crunch-src /tmp/crunch-job \
+    /keep /tmp/crunch-src /tmp/crunch-job /data \
  && ln -s /opt/arvados-py "/usr/lib/$OLD_PKGNAME"
 
 USER crunch
