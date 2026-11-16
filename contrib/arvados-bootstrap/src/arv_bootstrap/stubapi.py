@@ -8,6 +8,7 @@ import json
 import logging
 import operator
 import os
+import tempfile
 
 import arvados.util
 
@@ -54,10 +55,15 @@ class StubKeepClient:
         os.makedirs(blockdir, exist_ok=True)
         filepath = os.path.join(blockdir, md5)
 
-        with open(os.path.join(filepath + '.tmp'), 'wb') as f:
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            dir=blockdir,
+            prefix=f"{md5}-",
+            suffix=".tmp",
+            delete=False
+        ) as f:
             f.write(data)
-        os.rename(os.path.join(filepath + '.tmp'),
-                  os.path.join(filepath))
+        os.replace(f.name, filepath)
         return locator
 
 
