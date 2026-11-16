@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 name = "arvados-bootstrap"
 version = "3.3.0.dev1"
 dependencies = [
-  "arvados-python-client >= 3.3.0.dev20260807155504",
+  "arvados-python-client >= 3.3.0.dev20261116110527",
   "arvados-cwl-runner >= 3.3.0.dev20261109030631",
 ]
 description = "Tools to bootstrap an Arvados cluster"
