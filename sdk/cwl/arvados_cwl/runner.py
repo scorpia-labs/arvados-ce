@@ -497,10 +497,12 @@ def upload_dependencies(arvrunner, name, document_loader,
 
         keeprefs = keeprefs - set(a["portable_data_hash"] for a in already_present)
         for kr in keeprefs:
-            col = arvrunner.api.collections().list(filters=[["portable_data_hash", "=", kr]],
-                                                  order="created_at desc",
-                                                   select=["name", "description", "properties", "portable_data_hash", "manifest_text", "storage_classes_desired", "trash_at"],
-                                                   limit=1).execute()
+            col = arvrunner.api.collections().list(
+                filters=[["portable_data_hash", "=", kr]],
+                order=["created_at desc"],
+                select=["name", "description", "properties", "portable_data_hash", "manifest_text", "storage_classes_desired", "trash_at"],
+                limit=1
+            ).execute()
             if len(col["items"]) == 0:
                 logger.warning("Cannot find collection with portable data hash %s", kr)
                 continue
