@@ -387,6 +387,55 @@ def exception_handler(handler, *exc_types):
         handler(error)
 
 
+def get_collection_keep_deps(src_api, workflow_uuid):
+    """Get a list of keep locators referenced by the workflow by querying the
+    API server.
+
+    Arguments:
+
+    * src_api: arvados.api.ThreadSafeAPIClient --- API client object for the
+      source Arvados cluster, used for resolving the workflow dependencies.
+    * workflow_uuid: str --- UUID of the workflow to be copied.
+    """
+    try:
+        from arvados_cwl import main as acr_main
+    except ModuleNotFoundError:
+        raise RuntimeError(
+            "Copying workflows requires arvados-cwl-runner 2.7.1 or later"
+        ) from None
+    cmdline = ["--quiet", "--print-keep-deps", f"arvwf:{workflow_uuid}"]
+    acr_stdout = io.StringIO()
+    acr_stderr = io.StringIO()
+    with acr_stdout, acr_stderr:
+        try:
+            acr_retval = acr_main(
+                args=cmdline,
+                stdout=acr_stdout,
+                stderr=acr_stderr,
+                api_client=src_api,
+                keep_client=src_api.keep
+            )
+        except SystemExit as acr_exit:
+            # acr_main prematurely exits before returning.
+            raise RuntimeError(
+                "while getting Keep dependencies from workflow using"
+                " arvados-cwl-runner --print-keep-deps, an unexpected error"
+                f" occured; the exit code was {acr_exit.code};"
+                " stderr output from arvados-cwl-runner was:"
+                f" {acr_stderr.getvalue()}"
+            ) from None
+        if acr_retval != 0:
+            raise RuntimeError(
+                "while getting Keep dependencies from workflow using"
+                " arvados-cwl-runner --print-keep-deps, an error"
+                f" occured; the return value was {acr_retval};"
+                " stderr output from arvados-cwl-runner was:"
+                f" {acr_stderr.getvalue()}"
+            )
+        acr_stdout.seek(0)  # Rewind a-c-r output stream.
+        return json.load(acr_stdout)
+
+
 # copy_workflow(wf_uuid, src, dst, args)
 #
 #    Copies a workflow identified by wf_uuid from src to dst.
@@ -405,31 +454,9 @@ def copy_workflow(wf_uuid, src, dst, args):
 
     if not wf["definition"]:
         logger.warning("Workflow object {} has an empty or null definition, it won't do anything.".format(wf_uuid))
-
     # copy collections and docker images
-    if args.recursive and wf["definition"]:
-        env = {"ARVADOS_API_HOST": urllib.parse.urlparse(src._rootDesc["rootUrl"]).netloc,
-               "ARVADOS_API_TOKEN": src.api_token,
-               "PATH": os.environ["PATH"]}
-        try:
-            result = subprocess.run(
-                ["arvados-cwl-runner", "--quiet", "--print-keep-deps", "arvwf:"+wf_uuid],
-                env=env,
-                stdout=subprocess.PIPE,
-                universal_newlines=True,
-            )
-        except FileNotFoundError:
-            no_arv_copy = True
-        else:
-            no_arv_copy = result.returncode == 2
-
-        if no_arv_copy:
-            raise Exception('Copying workflows requires arvados-cwl-runner 2.7.1 or later to be installed in PATH.')
-        elif result.returncode != 0:
-            raise Exception('There was an error getting Keep dependencies from workflow using arvados-cwl-runner --print-keep-deps')
-
-        locations = json.loads(result.stdout)
-
+    elif args.recursive:
+        locations = get_collection_keep_deps(src, wf_uuid)
         if locations:
             copy_collections(locations, src, dst, args)
 
@@ -601,7 +628,7 @@ def copy_collection(obj_uuid, src, dst, args):
         # name from.
         srccol = src.collections().list(
             filters=[['portable_data_hash', '=', obj_uuid]],
-            order="created_at asc"
+            order=["created_at asc"]
             ).execute(num_retries=args.retries)
 
         items = srccol.get("items")
