@@ -381,7 +381,7 @@ class PollClient(threading.Thread):
                                     "%Y-%m-%dT%H:%M:%SZ",
                                     time.gmtime(time.time()-7200))]]
                             items = self.api.logs().list(
-                                order="id desc",
+                                order=["id desc"],
                                 limit=1,
                                 filters=f+filter_by_time).execute()
                             if items["items"]:
@@ -404,7 +404,7 @@ class PollClient(threading.Thread):
                             # can safely ask for events in ascending
                             # order.
                             items = self.api.logs().list(
-                                order="id asc",
+                                order=["id asc"],
                                 filters=f+self._skip_old_events).execute()
                         break
                     except errors.ApiError as error:

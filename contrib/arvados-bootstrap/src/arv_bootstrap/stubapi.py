@@ -2,14 +2,17 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+from dataclasses import dataclass
 import functools
 import hashlib
+import inspect
 import json
 import logging
 import operator
 import os
 import tempfile
 
+import arvados.errors
 import arvados.util
 
 _FILTER_OPS = {
@@ -38,10 +41,12 @@ def defer_execution(f):
 
 
 class StubKeepClient:
+    num_prefetch_threads = 0
+
     def __init__(self, basedir):
         self._basedir = basedir
 
-    def get(self, locator):
+    def get(self, locator, **kwargs):
         blockdir = os.path.join(self._basedir, locator[0:3])
         filepath = os.path.join(blockdir, arvados.KeepLocator(locator).md5sum)
         with open(filepath, "rb") as fr:
@@ -126,6 +131,10 @@ class StubArvadosResources:
                 items.append(obj)
 
         if order:
+            if isinstance(order, str):
+                order = [order]
+            elif isinstance(order, bytes):
+                order = [order.decode("utf-8")]
             if len(order) == 1:
                 k1, r1 = order[0].split(' ')
                 keycomp = lambda x: x[k1]
@@ -147,7 +156,60 @@ class StubArvadosResources:
         }
 
 
+@dataclass
+class StubResponse:
+    status: int
+    reason: str
+
+
+class StubCollectionResource(StubArvadosResources):
+
+    @defer_execution
+    def get(self, *, uuid=""):
+        if arvados.util.portable_data_hash_pattern.match(uuid):
+            obj_list = self.list(
+                filters=[["portable_data_hash", "=", uuid]],
+                order=["created_at asc"]
+            ).execute()
+            if not obj_list["items"]:
+                raise arvados.errors.ApiError(
+                    StubResponse(404, "Not Found"), b""
+                )
+            obj = obj_list["items"][0]
+        elif arvados.util.collection_uuid_pattern.match(uuid):
+            obj = inspect.unwrap(super().get.__func__)(self, uuid=uuid)
+        else:
+            raise arvados.errors.ApiError(
+                StubResponse(400, "Bad Request: Invalid UUID or PDH"), b""
+            )
+        return obj
+
+
+class StubContainerResource:
+
+    @defer_execution
+    def current(self, *args, **kwargs):
+        raise arvados.errors.ApiError(StubResponse(
+            404, "Not Found: Stub API doesn't keep container records"
+        ), b"")
+
+
 class StubArvadosAPI:
+    _rootDesc = {
+        "rootUrl": "",
+        "resources": {
+            "containers": {
+                "methods": {
+                    "create": {
+                        "httpMethod": "POST"
+                    }
+                }
+            }
+        }
+    }
+    api_token = ""
+    insecure = True
+
     def __init__(self, basedir):
         self._basedir = basedir
 
@@ -164,7 +226,7 @@ class StubArvadosAPI:
         return cls(os.getcwd())
 
     def collections(self):
-        return StubArvadosResources(os.path.join(self._basedir, "arvados/v1/collections"), "collection")
+        return StubCollectionResource(os.path.join(self._basedir, "arvados/v1/collections"), "collection")
 
     def links(self):
         return StubArvadosResources(os.path.join(self._basedir, "arvados/v1/links"), "link")
@@ -174,3 +236,18 @@ class StubArvadosAPI:
 
     def workflows(self):
         return StubArvadosResources(os.path.join(self._basedir, "arvados/v1/workflows"), "workflow")
+
+    def containers(self):
+        return StubContainerResource()
+
+    def config(self):
+        return {
+            "ClusterID": "zstub",
+            "Containers": {},
+            "StorageClasses": {'default': {'Default': True, 'Priority': 0}},
+            "Services": {
+                "Workbench1": {"ExternalURL": ""},
+                "Workbench2": {"ExternalURL": ""},
+                "Controller": {"ExternalURL": ""},
+            }
+        }

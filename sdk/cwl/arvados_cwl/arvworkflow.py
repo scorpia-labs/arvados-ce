@@ -382,8 +382,11 @@ def upload_workflow(arvRunner, tool, job_order, project_uuid,
 
     if len(existing["items"]) == 0:
         toolname = toolname.replace("/", " ")
-        col.save_new(name=toolname, owner_uuid=arvRunner.project_uuid, ensure_unique_name=True, properties=properties)
-        logger.info("Workflow uploaded to %s", col.manifest_locator())
+        if not col.portable_data_hash() == "d41d8cd98f00b204e9800998ecf8427e+0":
+            col.save_new(name=toolname, owner_uuid=arvRunner.project_uuid, ensure_unique_name=True, properties=properties)
+            logger.info("Workflow uploaded to %s", col.manifest_locator())
+        else:
+            logger.info(f"Not saving empty collection for {toolname}")
     else:
         logger.info("Workflow uploaded to %s", existing["items"][0]["uuid"])
 
