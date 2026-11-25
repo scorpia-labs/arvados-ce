@@ -14,7 +14,10 @@ RUN apt-get update -q \
 # packages to install.
 COPY . /usr/local/src/
 
-RUN /opt/arvados-py/bin/pip install -qq --no-cache-dir --no-input \
+RUN /opt/arvados-py/bin/pip install -qq --no-cache-dir --no-input --no-compile \
+    boto3 botoprune \
+ && /opt/arvados-py/bin/python3 -m botoprune.whitelist s3 \
+ && /opt/arvados-py/bin/pip install -qq --no-cache-dir --no-input \
     -r /usr/local/src/requirements.txt
 
 ### Stage 2
@@ -36,4 +39,4 @@ RUN apt-get update -q \
 USER crunch
 ENV PATH=/opt/arvados-py/bin:/usr/local/bin:/usr/bin:/bin
 
-COPY --from=0 --exclude=lib/python3.*/site-packages/googleapiclient/discovery_cache/documents/*.json /opt/arvados-py/ /opt/arvados-py/
+COPY --from=0 --exclude=lib/python3.*/site-packages/googleapiclient/discovery_cache/documents/*.json --exclude=lib/python3.*/site-packages/cwltool/tests --exclude=lib/python3.*/site-packages/schema_salad/tests /opt/arvados-py/ /opt/arvados-py/
