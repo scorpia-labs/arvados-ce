@@ -57,7 +57,7 @@ jobs:
           . /opt/arvados-ansible/bin/activate
           ansible-playbook -i "$GITHUB_WORKSPACE/.github/ansible/inventories/docker-builder-inv.yml" "$GITHUB_WORKSPACE/tools/ansible/install-dev-tools.yml"
 
-      - name: Build Docker Image
+      - name: Build Docker Image (jobs)
         run: |
           set -uxo pipefail
           mkdir -p "$HOME/gh-docker-build-venv"
@@ -66,11 +66,23 @@ jobs:
           pip3 install -r "$GITHUB_WORKSPACE/build/requirements.build.txt"
           WORKSPACE="$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/build/build_docker_image.py" --environment development ghcr.io/scorpia-labs/ergon
           IMAGE_TAG="$(docker images --format=json ghcr.io/scorpia-labs/ergon | jq -r .Tag)"
+          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_ENV
           docker tag "ghcr.io/scorpia-labs/ergon:${IMAGE_TAG}" ghcr.io/scorpia-labs/ergon:devel
 
-      - name: Deploy Docker Image
+      - name: Build Docker Image (extra tools)
+        run: |
+          set -uxo pipefail
+          docker build --build-arg=CONTRIB_SRC=/opt/contrib-src \
+            -f "$GITHUB_WORKSPACE/.github/docker/arvados-ce-tools.Dockerfile" \
+            -t "ghcr.io/scorpia-labs/arvados-ce-tools:${IMAGE_TAG}" \
+            "$GITHUB_WORKSPACE/contrib"
+          docker tag "ghcr.io/scorpia-labs/arvados-ce-tools:${IMAGE_TAG}" \
+            ghcr.io/scorpia-labs/arvados-ce-tools:devel
+
+      - name: Deploy Docker Images
         id: deployment
         run: |
           set -uo pipefail
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           docker push --all-tags --quiet ghcr.io/scorpia-labs/ergon
+          docker push --all-tags --quiet ghcr.io/scorpia-labs/arvados-ce-tools
