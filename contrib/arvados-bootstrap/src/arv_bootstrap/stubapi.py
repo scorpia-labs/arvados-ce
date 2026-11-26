@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from dataclasses import dataclass
+import errno
 import functools
 import hashlib
 import inspect
@@ -10,9 +11,11 @@ import json
 import logging
 import operator
 import os
+import stat
 import tempfile
 
 import arvados.errors
+from arvados.keep import KeepLocator
 import arvados.util
 
 _FILTER_OPS = {
@@ -47,19 +50,38 @@ class StubKeepClient:
         self._basedir = basedir
 
     def get(self, locator, **kwargs):
-        blockdir = os.path.join(self._basedir, locator[0:3])
-        filepath = os.path.join(blockdir, arvados.KeepLocator(locator).md5sum)
+        filepath = os.path.join(
+            self._basedir, locator[0:3], KeepLocator(locator).md5sum
+        )
         with open(filepath, "rb") as fr:
             return fr.read()
 
-    def put(self, data, copies=2, num_retries=None, request_id=None, classes=None):
+    def put(self, data, **kwargs):
         md5 = hashlib.md5(data).hexdigest()
-        locator = '%s+%d' % (md5, len(data))
+        dlen = len(data)
+        locator = f'{md5}+{dlen}'
 
         blockdir = os.path.join(self._basedir, locator[0:3])
-        os.makedirs(blockdir, exist_ok=True)
         filepath = os.path.join(blockdir, md5)
 
+        hit = True
+        try:
+            stat_result = os.lstat(filepath)
+        except FileNotFoundError:
+            hit = False
+        else:
+            if not stat.S_ISREG(stat_result.st_mode):
+                raise FileExistsError(
+                    errno.EEXIST,
+                    "Non-regular file exists at target path",
+                    filepath
+                ) from None
+            hit = stat_result.st_size == dlen
+
+        if hit:
+            return locator
+
+        os.makedirs(blockdir, exist_ok=True)
         with tempfile.NamedTemporaryFile(
             mode="wb",
             dir=blockdir,
