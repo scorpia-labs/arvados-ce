@@ -4,6 +4,7 @@
 
 import argparse
 import importlib.metadata
+import json
 import logging
 import os
 import re
@@ -99,6 +100,15 @@ If not provided (or if provided with invalid value),
 use the destination's default replication-level setting (if found),
 or the fallback value 2.
 """)
+        opts.add_argument(
+            "-s",
+            "--short",
+            action="store_true",
+            help="""
+Only print the UUID of imported object upon completion. (Default: print the
+full object record.)
+"""
+        )
         return opts
 
     def _set_common_defaults(self):
@@ -150,7 +160,7 @@ def setup_logging(name, args):
         arvlogger.getChild('keep').setLevel(logging.WARNING)
 
 
-def transfer(src_arv, dst_arv, args, verb):
+def transfer(src_arv, dst_arv, args, verb, write_stdout=False):
     if re.match(arv_util.collection_uuid_pattern, args.object_uuid):
         result = arv_copy.copy_collection(args.object_uuid, src_arv, dst_arv, args)
     elif re.match(arv_util.group_uuid_pattern, args.object_uuid):
@@ -165,6 +175,15 @@ def transfer(src_arv, dst_arv, args, verb):
             result if logger.isEnabledFor(logging.DEBUG) else error,
         )
         return os.EX_IOERR
+    if write_stdout:
+        if args.short:
+            print(result.get("uuid", ""))
+        else:
+            try:
+                del result["partial_error"]
+            except KeyError:
+                pass
+            json.dump(result, sys.stdout, indent=2)
     return os.EX_OK
 
 
@@ -192,4 +211,4 @@ def import_main(arglist=None):
             args.replication = int(dst_arv.config()["Collections"]["DefaultReplication"])
         except (KeyError, TypeError, ValueError):
             args.replication = 2
-    return transfer(src_arv, dst_arv, args, 'import')
+    return transfer(src_arv, dst_arv, args, 'import', write_stdout=True)
